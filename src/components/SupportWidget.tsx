@@ -25,6 +25,13 @@ interface SpeechRecognitionEvent {
 
 interface SpeechRecognitionErrorEvent {
   error: string;
+  message?: string;
+}
+
+interface AIResponse {
+  question: string;
+  answer: string;
+  keywords?: string[];
 }
 
 const supportMessages = [
@@ -152,7 +159,7 @@ export default function SupportWidget() {
         setChatInput(transcript);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
       };
@@ -226,10 +233,10 @@ export default function SupportWidget() {
     const questionWords = new Set(userQuestion.split(/\s+/));
     
     // Find the best matching response
-    const response = aiResponses.reduce((bestMatch, current) => {
+    const response = aiResponses.reduce((bestMatch: { response: AIResponse | null; score: number }, current) => {
       // Check keyword matches first
-      const keywordMatches = current.keywords?.filter(kw => 
-        questionWords.has(kw.toLowerCase())
+      const keywordMatches = current.keywords?.filter(keyword => 
+        questionWords.has(keyword) || userQuestion.includes(keyword)
       ).length || 0;
 
       // Check question matches
@@ -243,7 +250,7 @@ export default function SupportWidget() {
       return currentScore > bestScore ? 
         { response: current, score: currentScore } : 
         bestMatch;
-    }, { response: null, score: 0 } as { response: any; score: number });
+    }, { response: null, score: 0 });
 
     setTimeout(() => {
       setChatHistory(prev => [...prev, { 
