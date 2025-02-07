@@ -157,41 +157,49 @@ export default function SupportWidget() {
   const [chatInput, setChatInput] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{type: string; text: string}>>([]);
   const [isListening, setIsListening] = useState(false);
-  const [isSpeechSupported] = useState(() => 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+  const [isSpeechSupported, setIsSpeechSupported] = useState<boolean>(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isSpeechSupported) {
-      const SpeechRecognitionAPI = (
-        window.webkitSpeechRecognition || window.SpeechRecognition
-      ) as SpeechRecognitionConstructor;
-      
-      recognitionRef.current = new SpeechRecognitionAPI();
-      
-      if (recognitionRef.current) {
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'en-US';
+    // Check for speech recognition support only on client side
+    setIsSpeechSupported(
+      !!(window.webkitSpeechRecognition || window.SpeechRecognition)
+    );
+  }, []);
 
-        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
+  // Initialize speech recognition only after checking support
+  useEffect(() => {
+    if (!isSpeechSupported) return;
 
-          setChatInput(transcript);
-        };
+    const SpeechRecognitionAPI = (
+      window.webkitSpeechRecognition || window.SpeechRecognition
+    ) as SpeechRecognitionConstructor;
+    
+    recognitionRef.current = new SpeechRecognitionAPI();
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
 
-        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-        };
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0])
+          .map((result) => result.transcript)
+          .join('');
 
-        recognitionRef.current.onend = () => {
-          setIsListening(false);
-        };
-      }
+        setChatInput(transcript);
+      };
+
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
     }
 
     return () => {
