@@ -11,6 +11,12 @@ interface CheckoutPageProps {
   params: Promise<{ plan: string }>;
 }
 
+interface Timer {
+  [Symbol.dispose](): void;
+  ref(): Timer;
+  unref(): Timer;
+}
+
 const steps = [
   {
     number: 1,
@@ -122,11 +128,12 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         return Math.random() * (max - min) + min;
       }
 
-      const interval: NodeJS.Timer = setInterval(function() {
+      const interval: Timer = setInterval(function() {
         const timeLeft = animationEnd - Date.now();
 
         if (timeLeft <= 0) {
-          return clearInterval(interval);
+          clearInterval(interval as unknown as NodeJS.Timeout);
+          return;
         }
 
         const particleCount = 50 * (timeLeft / duration);
@@ -144,7 +151,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         });
       }, 250);
 
-      return () => clearInterval(interval);
+      return () => clearInterval(interval as unknown as NodeJS.Timeout);
     }
   }, [currentStep]);
 
