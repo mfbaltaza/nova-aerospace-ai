@@ -17,6 +17,12 @@ interface Timer {
   unref(): Timer;
 }
 
+interface PlanDetails {
+  name: string;
+  price: string;
+  features: string[];
+}
+
 const steps = [
   {
     number: 1,
@@ -67,33 +73,9 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     cvc: '',
   });
   const [showInvoice, setShowInvoice] = useState(false);
+  const [planDetails, setPlanDetails] = useState<PlanDetails | null>(null);
   
   const decodedPlan = decodeURIComponent(plan);
-  const planDetails = {
-    Startup: {
-      name: "Startup",
-      price: "$999/mo",
-      features: [
-        "Access to Quantum Propulsion API",
-        "Basic mission support",
-        "5 team members",
-        "Community access",
-        "Email support"
-      ]
-    },
-    Enterprise: {
-      name: "Enterprise",
-      price: "$4,999/mo",
-      features: [
-        "Full technology stack access",
-        "Priority mission control",
-        "Unlimited team members",
-        "24/7 support",
-        "Custom integration",
-        "Dedicated account manager"
-      ]
-    }
-  }[decodedPlan];
 
   const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
   const invoiceDate = new Date().toLocaleDateString('en-US', {
@@ -116,6 +98,21 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     setLoading(false);
     setCurrentStep('confirmation');
   };
+
+  useEffect(() => {
+    const fetchPlanDetails = async () => {
+      try {
+        const response = await fetch(`/api/plans/${plan}`);
+        const data = await response.json();
+        setPlanDetails(data);
+      } catch (error) {
+        console.error('Error fetching plan details:', error);
+        // Handle error appropriately
+      }
+    };
+
+    fetchPlanDetails();
+  }, [plan]);
 
   useEffect(() => {
     if (currentStep === 'confirmation') {
@@ -220,28 +217,32 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           {currentStep !== 'confirmation' && (
             <div className="mb-8 p-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm
               hover:border-purple-500/50 transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">{planDetails.name} Plan</h3>
-                  <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 
-                    text-transparent bg-clip-text animate-pulse">
-                    {planDetails.price}
+              {planDetails ? (
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">{planDetails.name} Plan</h3>
+                    <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 
+                      text-transparent bg-clip-text animate-pulse">
+                      {planDetails.price}
+                    </div>
+                  </div>
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full opacity-20 
+                      group-hover:opacity-30 transition-opacity animate-pulse" />
+                    <Image
+                      src="/rocket-badge.png"
+                      alt="Plan Icon"
+                      width={64}
+                      height={64}
+                      className="relative z-10 transform group-hover:scale-110 transition-transform"
+                    />
                   </div>
                 </div>
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full opacity-20 
-                    group-hover:opacity-30 transition-opacity animate-pulse" />
-                  <Image
-                    src="/rocket-badge.png"
-                    alt="Plan Icon"
-                    width={64}
-                    height={64}
-                    className="relative z-10 transform group-hover:scale-110 transition-transform"
-                  />
-                </div>
-              </div>
+              ) : (
+                <div>Loading plan details...</div>
+              )}
               <ul className="grid grid-cols-2 gap-4">
-                {planDetails.features.map((feature, index) => (
+                {planDetails?.features.map((feature, index) => (
                   <li key={index} className="flex items-center gap-2 text-sm text-gray-400">
                     <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -375,7 +376,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       </svg>
                       Processing...
                     </span>
-                  ) : `Pay ${planDetails.price}`}
+                  ) : `Pay ${planDetails?.price}`}
                 </button>
               </motion.form>
             )}
@@ -539,16 +540,16 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                 <tbody>
                   <tr>
                     <td className="py-4">
-                      <p className="font-medium">{planDetails.name} Plan</p>
+                      <p className="font-medium">{planDetails?.name} Plan</p>
                       <p className="text-sm text-gray-600">Monthly Subscription</p>
                     </td>
-                    <td className="text-right py-4">{planDetails.price}</td>
+                    <td className="text-right py-4">{planDetails?.price}</td>
                   </tr>
                 </tbody>
                 <tfoot className="border-t border-gray-200">
                   <tr>
                     <td className="py-4 font-bold">Total</td>
-                    <td className="text-right py-4 font-bold">{planDetails.price}</td>
+                    <td className="text-right py-4 font-bold">{planDetails?.price}</td>
                   </tr>
                 </tfoot>
               </table>
