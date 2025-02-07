@@ -13,14 +13,27 @@ interface SpeechRecognition extends EventTarget {
   onend: () => void;
 }
 
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognition;
+}
+
+interface SpeechRecognitionResultItem {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionResult {
+  0: SpeechRecognitionResultItem;
+  length: number;
+  isFinal: boolean;
+}
+
 interface SpeechRecognitionEvent {
   results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
+    [index: number]: SpeechRecognitionResult;
+    length: number;
   };
+  resultIndex: number;
 }
 
 interface SpeechRecognitionErrorEvent {
@@ -129,6 +142,13 @@ const aiResponses = [
   },
 ];
 
+declare global {
+  interface Window {
+    webkitSpeechRecognition: SpeechRecognitionConstructor;
+    SpeechRecognition: SpeechRecognitionConstructor;
+  }
+}
+
 export default function SupportWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMessage, setCurrentMessage] = useState(supportMessages[0]);
@@ -143,30 +163,35 @@ export default function SupportWidget() {
 
   useEffect(() => {
     if (isSpeechSupported) {
-      // Initialize speech recognition
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
+      const SpeechRecognitionAPI = (
+        window.webkitSpeechRecognition || window.SpeechRecognition
+      ) as SpeechRecognitionConstructor;
+      
+      recognitionRef.current = new SpeechRecognitionAPI();
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map(result => result.transcript)
-          .join('');
+        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = Array.from(event.results)
+            .map((result) => result[0])
+            .map((result) => result.transcript)
+            .join('');
 
-        setChatInput(transcript);
-      };
+          setChatInput(transcript);
+        };
 
-      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
+        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
 
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
     }
 
     return () => {
@@ -480,7 +505,11 @@ function ExpandIcon() {
   );
 }
 
-function MicrophoneIcon({ isListening }: { isListening: boolean }) {
+interface MicrophoneIconProps {
+  isListening: boolean;
+}
+
+function MicrophoneIcon({ isListening }: MicrophoneIconProps) {
   return (
     <svg
       className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`}
@@ -514,11 +543,4 @@ function SendIcon() {
       />
     </svg>
   );
-}
-
-declare global {
-  interface Window {
-    webkitSpeechRecognition: any;
-    SpeechRecognition: any;
-  }
 } 

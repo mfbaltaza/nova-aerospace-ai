@@ -3,6 +3,17 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { TeamMember } from '@/types/TeamMember';
 
+type MemberStatus = 'active' | 'away';
+
+type EditedMember = {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  status: MemberStatus;
+  role: string;
+};
+
 type MemberModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -12,32 +23,41 @@ type MemberModalProps = {
 };
 
 export default function MemberModal({ isOpen, onClose, onSubmit, member, title }: MemberModalProps) {
-  const [formData, setFormData] = useState({
+  const [editedMember, setEditedMember] = useState<EditedMember>({
+    id: '',
     name: '',
-    role: '',
     email: '',
     department: '',
-    status: 'active' as const,
+    status: 'active',
+    role: ''
   });
 
   useEffect(() => {
     if (member) {
-      setFormData({
-        name: member.name,
-        role: member.role,
+      setEditedMember({
+        id: member.id.toString(),
+        name: member.name || '',
         email: member.email || '',
         department: member.department || '',
-        status: member.status,
+        status: member.status as MemberStatus,
+        role: member.role || ''
       });
     }
   }, [member]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.role) {
-      onSubmit(formData);
+    if (editedMember.name && editedMember.role) {
+      const { ...submitMember } = editedMember;
+      onSubmit(submitMember);
       onClose();
     }
+  };
+
+  const handleInputChange = (field: keyof EditedMember) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setEditedMember({ ...editedMember, [field]: e.target.value });
   };
 
   return (
@@ -66,7 +86,7 @@ export default function MemberModal({ isOpen, onClose, onSubmit, member, title }
               {title}
             </motion.h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {['name', 'role', 'email', 'department'].map((field, index) => (
+              {(['name', 'role', 'email', 'department'] as const).map((field, index) => (
                 <motion.div
                   key={field}
                   initial={{ opacity: 0, x: -20 }}
@@ -76,8 +96,8 @@ export default function MemberModal({ isOpen, onClose, onSubmit, member, title }
                   <label className="block text-sm mb-1 text-white capitalize">{field}</label>
                   <input
                     type={field === 'email' ? 'email' : 'text'}
-                    value={formData[field as keyof typeof formData]}
-                    onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
+                    value={editedMember[field]}
+                    onChange={handleInputChange(field)}
                     className="w-full bg-[#131B2E] rounded-lg px-4 py-2 text-white border border-gray-800 
                              focus:border-purple-500 focus:outline-none transition-all duration-200
                              hover:border-gray-700"
@@ -93,8 +113,8 @@ export default function MemberModal({ isOpen, onClose, onSubmit, member, title }
               >
                 <label className="block text-sm mb-1 text-white">Status</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'away' })}
+                  value={editedMember.status}
+                  onChange={handleInputChange('status')}
                   className="w-full bg-[#131B2E] rounded-lg px-4 py-2 text-white border border-gray-800 
                            focus:border-purple-500 focus:outline-none transition-all duration-200
                            hover:border-gray-700"
