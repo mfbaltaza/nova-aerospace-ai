@@ -286,13 +286,14 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="space-y-8">
               <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-                Pushing the boundaries of what's possible
+                Pushing the boundaries of what&apos;s possible
               </h2>
               <p className="text-gray-400 text-lg leading-relaxed">
-                At NOVA Aerospace, we're not just dreaming about the future of
-                space travel – we're building it. Our team of world-class
+                At NOVA Aerospace, we&apos;re not just dreaming about the future of
+                space travel – we&apos;re building it. Our team of world-class
                 engineers and scientists are developing revolutionary propulsion
                 technologies that will make interplanetary travel a reality.
+
               </p>
               <div className="grid grid-cols-2 gap-8 pt-8">
                 <div className="space-y-2">
@@ -326,7 +327,9 @@ export default function Home() {
               </div>
               <div className="absolute -bottom-4 -right-4 bg-black p-4 rounded-lg">
                 <div className="text-sm font-mono">
-                  <div className="text-purple-400">// Next-Gen Propulsion</div>
+                  <div className="text-purple-400">
+                    {/* Next-Gen Propulsion */}
+                  </div>
                   <div className="text-gray-400">Status: Operational</div>
                 </div>
               </div>
