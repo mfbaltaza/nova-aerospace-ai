@@ -104,7 +104,57 @@ export default function SupportWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{type: string; text: string}>>([]);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechSupported] = useState(() => 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
+  const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isSpeechSupported) {
+      // Initialize speech recognition
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0])
+          .map(result => result.transcript)
+          .join('');
+
+        setChatInput(transcript);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [isSpeechSupported]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setChatInput('');
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -267,7 +317,7 @@ export default function SupportWidget() {
                   onSubmit={handleChatSubmit}
                   className="p-4 border-t border-white/10 bg-white/5"
                 >
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={chatInput}
@@ -275,11 +325,25 @@ export default function SupportWidget() {
                       placeholder="Type your question..."
                       className="flex-1 bg-white/5 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
+                    {isSpeechSupported && (
+                      <button
+                        type="button"
+                        onClick={toggleListening}
+                        className={`p-2 rounded-lg text-sm transition-colors ${
+                          isListening 
+                            ? 'bg-blue-600 hover:bg-blue-700' 
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                        title={isListening ? 'Stop listening' : 'Start voice input'}
+                      >
+                        <MicrophoneIcon isListening={isListening} />
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                      className="p-2 rounded-lg text-sm bg-purple-600 hover:bg-purple-700 transition-colors"
                     >
-                      Send
+                      <SendIcon />
                     </button>
                   </div>
                 </form>
@@ -382,4 +446,47 @@ function ExpandIcon() {
       />
     </svg>
   );
+}
+
+function MicrophoneIcon({ isListening }: { isListening: boolean }) {
+  return (
+    <svg
+      className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 18.5a6.5 6.5 0 006.5-6.5h-13a6.5 6.5 0 006.5 6.5zm3.5-6.5a3.5 3.5 0 11-7 0V7a3.5 3.5 0 117 0v5z"
+      />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+      />
+    </svg>
+  );
+}
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+  }
 } 
